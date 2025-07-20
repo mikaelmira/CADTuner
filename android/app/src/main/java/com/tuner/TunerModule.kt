@@ -72,7 +72,9 @@ class TunerModule(private val reactContext: ReactApplicationContext) :
         rms += windowed[i] * windowed[i]
     }
     rms = kotlin.math.sqrt(rms / size)
-    if (rms < 0.01) return 0.0
+
+    // GATE: ignora sons muito fracos ou ruídos de fundo
+    if (rms < 0.02) return 0.0
 
     val autocorrelation = DoubleArray(size)
     for (lag in 0 until size) {
@@ -83,11 +85,9 @@ class TunerModule(private val reactContext: ReactApplicationContext) :
         autocorrelation[lag] = sum
     }
 
-    // Ignorar o pico em lag=0
     val start = 30
     val peakIndex = (start until size).maxByOrNull { autocorrelation[it] } ?: return 0.0
 
-    // Interpolação parabólica
     val prev = autocorrelation.getOrElse(peakIndex - 1) { 0.0 }
     val next = autocorrelation.getOrElse(peakIndex + 1) { 0.0 }
     val delta = (next - prev) / (2 * (2 * autocorrelation[peakIndex] - prev - next))

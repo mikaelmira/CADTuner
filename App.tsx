@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useRef } from 'react'
 import {
   View,
   Text,
@@ -18,6 +18,11 @@ export default function App() {
   const [note, setNote] = useState<NoteData | null>(null)
   const [angle] = useState(new Animated.Value(0))
 
+  // Estado para estabilidade visual
+  const lastStableNote = useRef<string | null>(null)
+  const streak = useRef<number>(0)
+  const STABILITY_THRESHOLD = 3 // Número de leituras consecutivas necessárias
+
   useEffect(() => {
     async function init() {
       const granted = await PermissionsAndroid.request(
@@ -28,17 +33,28 @@ export default function App() {
           'onFrequencyDetected',
           ({ frequency }) => {
             const noteData = getNoteData(frequency)
-            setNote(noteData)
 
-            const clamped = Math.max(-50, Math.min(50, noteData.cents))
-            const newAngle = (clamped / 50) * 45
+            // Lógica de estabilidade
+            if (noteData.note === lastStableNote.current) {
+              streak.current += 1
+            } else {
+              streak.current = 1
+              lastStableNote.current = noteData.note
+            }
 
-            Animated.timing(angle, {
-              toValue: newAngle,
-              duration: 100,
-              useNativeDriver: true,
-              easing: Easing.linear,
-            }).start()
+            if (streak.current >= STABILITY_THRESHOLD) {
+              setNote(noteData)
+
+              const clamped = Math.max(-50, Math.min(50, noteData.cents))
+              const newAngle = (clamped / 50) * 45
+
+              Animated.timing(angle, {
+                toValue: newAngle,
+                duration: 100,
+                useNativeDriver: true,
+                easing: Easing.linear,
+              }).start()
+            }
           },
         )
 
