@@ -16,7 +16,7 @@ export function getNoteData(frequency: number): NoteData {
   const cents = 1200 * Math.log2(frequency / nearestFrequency)
 
   return {
-    note: `${NOTES[noteIndex]}${octave}`,
+    note: `${NOTES[noteIndex]}`,
     frequency: nearestFrequency,
     cents,
   }
